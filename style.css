@@ -1,0 +1,164 @@
+:root {
+  --bg: #0f0b33;          /* tom mais próximo do fundo do gif */
+  --star: #ffffff;
+  --star-dim: rgba(255, 255, 255, .45);
+  --green: #5ccf3c;
+  --orange: #ff8a1f;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+          "Helvetica Neue", Arial, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: #fff;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------- CÉU ---------- */
+.sky {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* pontinhos: acendem e apagam em degraus, estilo pixel */
+.star {
+  position: absolute;
+  background: var(--star);
+  animation-name: blink;
+  animation-iteration-count: infinite;
+  animation-timing-function: steps(1, end);
+}
+
+@keyframes blink {
+  0%   { opacity: 1; }
+  40%  { opacity: .3; }
+  55%  { opacity: 0; }
+  70%  { opacity: .5; }
+  100% { opacity: 1; }
+}
+
+/* estrela em cruz: ponto → cruz pequena → cruz grande → volta */
+.sparkle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: var(--star);
+  animation-name: sparkle;
+  animation-iteration-count: infinite;
+  animation-timing-function: steps(1, end);
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    box-shadow: none;
+    opacity: .6;
+  }
+  25%, 75% {
+    opacity: 1;
+    box-shadow:
+       0 -3px var(--star),  0 3px var(--star),
+      -3px 0 var(--star),   3px 0 var(--star);
+  }
+  50% {
+    opacity: 1;
+    box-shadow:
+       0 -3px var(--star),  0 -6px var(--star),  0 -9px var(--star-dim),
+       0  3px var(--star),  0  6px var(--star),  0  9px var(--star-dim),
+      -3px 0 var(--star),  -6px 0 var(--star),  -9px 0 var(--star-dim),
+       3px 0 var(--star),   6px 0 var(--star),   9px 0 var(--star-dim),
+      -3px -3px var(--star-dim), 3px -3px var(--star-dim),
+      -3px  3px var(--star-dim), 3px  3px var(--star-dim);
+  }
+}
+
+/* ---------- LAYOUT ---------- */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 40px 24px 40px clamp(24px, 8vw, 140px);
+  display: flex;
+  align-items: center;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+  max-width: 48%;
+}
+
+.tag {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--orange);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-weight: 700;
+  font-size: clamp(48px, 6.5vw, 88px);
+  line-height: 1.04;
+  letter-spacing: -0.035em;   /* letras mais juntinhas, estilo Apple */
+}
+h1 span { color: var(--green); }
+
+/* ---------- GIF NA PONTA DIREITA ---------- */
+.hero-art {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  height: min(100vh, 55vw);
+  aspect-ratio: 1 / 1;
+  z-index: 1;
+}
+.hero-art img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  animation: float 4s ease-in-out infinite;
+
+  /* esfuma esquerda, topo e base; direita fica intacta (nave visível) */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 22%),
+    linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  -webkit-mask-composite: source-in;
+          mask-image:
+    linear-gradient(to right, transparent 0%, #000 22%),
+    linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+          mask-composite: intersect;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 860px) {
+  .hero {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+  .hero-text { max-width: 100%; }
+  .hero-art {
+    position: static;
+    transform: none;
+    width: 100%;
+    height: auto;
+    margin-left: auto;
+    margin-right: -24px;   /* encosta na borda direita no celular também */
+  }
+}
