@@ -11,7 +11,9 @@
 </head>
 <body>
   <!-- música em loop -->
-  <audio id="music" src="travelers.mp3" loop preload="auto"></audio>
+  <audio id="music" loop preload="auto">
+    <source src="travelers.mp3" type="audio/mpeg">
+  </audio>
 
   <!-- céu estrelado (preenchido pelo script) -->
   <div class="sky"></div>
@@ -23,7 +25,7 @@
         eu escolheria recriar <span class="fire">a fogueira</span>
         com <span class="you">você</span>.
       </h1>
-      <p class="signature">Assinado: Marina (te amo!)</p>
+      <p class="signature">Assinado: Marina, te amo!</p>
     </section>
 
     <div class="hero-art">
@@ -32,7 +34,7 @@
   </main>
 
   <!-- botão de som -->
-  <button class="sound" id="sound" aria-label="Pausar música">♪</button>
+  <button class="sound off" id="sound" aria-label="Tocar música">♪</button>
 
   <script>
     const sky = document.querySelector('.sky');
@@ -59,14 +61,23 @@
     // ---------- MÚSICA ----------
     const music = document.getElementById('music');
     const soundBtn = document.getElementById('sound');
+    const TARGET_VOLUME = 0.6;
+    music.volume = TARGET_VOLUME;
 
+    // avisa no Console se o arquivo não for encontrado
+    music.querySelector('source').addEventListener('error', () => {
+      console.error('Não achei o "travelers.mp3". Confira se ele está na mesma pasta do index.html e se o nome não ficou "travelers.mp3.mp3".');
+    });
+
+    let fadeTimer = null;
     function fadeVolume(target, ms) {
+      clearInterval(fadeTimer);
       const steps = 30, start = music.volume;
       let n = 0;
-      const t = setInterval(() => {
+      fadeTimer = setInterval(() => {
         n++;
         music.volume = Math.min(1, Math.max(0, start + (target - start) * (n / steps)));
-        if (n >= steps) clearInterval(t);
+        if (n >= steps) clearInterval(fadeTimer);
       }, ms / steps);
     }
 
@@ -75,31 +86,37 @@
       soundBtn.setAttribute('aria-label', playing ? 'Pausar música' : 'Tocar música');
     }
 
-    function startMusic() {
-      music.volume = 0;
+    function startMusic(fade = true) {
+      music.volume = fade ? 0 : TARGET_VOLUME;
       return music.play().then(() => {
-        fadeVolume(0.6, 4000);           // volume sobe devagarinho
+        if (fade) fadeVolume(TARGET_VOLUME, 4000);   // volume sobe devagarinho
         setBtn(true);
+        stopListening();
+      }).catch(err => {
+        music.volume = TARGET_VOLUME;                // não deixa o volume preso no zero
+        console.warn('Música ainda não tocou:', err.name, '-', err.message);
+        setBtn(false);
+        throw err;
       });
     }
 
-    // tenta tocar sozinho; se o navegador bloquear, toca na primeira interação
-    const unlockEvents = ['pointerdown', 'keydown', 'touchstart'];
+    // se o navegador bloquear o som automático, toca na primeira interação
+    const unlockEvents = ['click', 'touchend', 'keydown'];
     function unlock(e) {
-      if (e.target.closest && e.target.closest('#sound')) return;
-      unlockEvents.forEach(ev => document.removeEventListener(ev, unlock));
-      if (music.paused) startMusic().catch(() => {});
+      if (e.target.closest && e.target.closest('#sound')) return;   // o botão cuida de si
+      if (music.paused) startMusic().catch(() => {});                // se falhar, continua ouvindo
     }
+    function stopListening() {
+      unlockEvents.forEach(ev => document.removeEventListener(ev, unlock));
+    }
+    unlockEvents.forEach(ev => document.addEventListener(ev, unlock));
 
-    startMusic().catch(() => {
-      setBtn(false);
-      unlockEvents.forEach(ev => document.addEventListener(ev, unlock));
-    });
+    // tenta tocar assim que a página abre
+    startMusic().catch(() => {});
 
     soundBtn.addEventListener('click', () => {
       if (music.paused) {
-        unlockEvents.forEach(ev => document.removeEventListener(ev, unlock));
-        startMusic().catch(() => {});
+        startMusic(false).catch(() => {});
       } else {
         music.pause();
         setBtn(false);
