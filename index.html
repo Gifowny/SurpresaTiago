@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- música em loop -->
+  <audio id="music" src="travelers.mp3" loop preload="auto"></audio>
+
   <!-- céu estrelado (preenchido pelo script) -->
   <div class="sky"></div>
 
@@ -20,6 +23,7 @@
         eu escolheria recriar <span class="fire">a fogueira</span>
         com <span class="you">você</span>.
       </h1>
+      <p class="signature">Assinado: Marina (te amo!)</p>
     </section>
 
     <div class="hero-art">
@@ -27,33 +31,80 @@
     </div>
   </main>
 
+  <!-- botão de som -->
+  <button class="sound" id="sound" aria-label="Pausar música">♪</button>
+
   <script>
     const sky = document.querySelector('.sky');
     const rand = (min, max) => Math.random() * (max - min) + min;
 
-    // estrelinhas (pontos que piscam)
-    for (let i = 0; i < 110; i++) {
+    // ---------- ESTRELAS ----------
+    function addStar(cls, size, area) {
       const s = document.createElement('span');
-      s.className = 'star';
-      const size = Math.random() < 0.75 ? 2 : 3;
-      s.style.width = s.style.height = size + 'px';
-      s.style.left = rand(0, 100) + '%';
-      s.style.top = rand(0, 100) + '%';
-      s.style.animationDuration = rand(1.5, 4.5) + 's';
-      s.style.animationDelay = -rand(0, 5) + 's';
+      s.className = cls;
+      if (size) s.style.width = s.style.height = size + 'px';
+      s.style.left = rand(area[0], area[1]) + '%';
+      s.style.top = rand(area[0], area[1]) + '%';
+      s.style.setProperty('--blink-dur', rand(1.5, 4.5) + 's');
+      s.style.setProperty('--blink-delay', -rand(0, 5) + 's');
+      s.style.setProperty('--pop-delay', rand(0, 1.2) + 's');  // brotam em ordem aleatória
       sky.appendChild(s);
+    }
+    for (let i = 0; i < 110; i++) addStar('star', Math.random() < .75 ? 2 : 3, [0, 100]);
+    for (let i = 0; i < 14; i++)  addStar('sparkle', 0, [2, 98]);
+
+    // ---------- ANIMAÇÃO DE ENTRADA (automática) ----------
+    requestAnimationFrame(() => document.body.classList.add('entered'));
+
+    // ---------- MÚSICA ----------
+    const music = document.getElementById('music');
+    const soundBtn = document.getElementById('sound');
+
+    function fadeVolume(target, ms) {
+      const steps = 30, start = music.volume;
+      let n = 0;
+      const t = setInterval(() => {
+        n++;
+        music.volume = Math.min(1, Math.max(0, start + (target - start) * (n / steps)));
+        if (n >= steps) clearInterval(t);
+      }, ms / steps);
     }
 
-    // estrelas em cruz (crescem e encolhem)
-    for (let i = 0; i < 14; i++) {
-      const s = document.createElement('span');
-      s.className = 'sparkle';
-      s.style.left = rand(2, 98) + '%';
-      s.style.top = rand(2, 98) + '%';
-      s.style.animationDuration = rand(2, 4) + 's';
-      s.style.animationDelay = -rand(0, 4) + 's';
-      sky.appendChild(s);
+    function setBtn(playing) {
+      soundBtn.classList.toggle('off', !playing);
+      soundBtn.setAttribute('aria-label', playing ? 'Pausar música' : 'Tocar música');
     }
+
+    function startMusic() {
+      music.volume = 0;
+      return music.play().then(() => {
+        fadeVolume(0.6, 4000);           // volume sobe devagarinho
+        setBtn(true);
+      });
+    }
+
+    // tenta tocar sozinho; se o navegador bloquear, toca na primeira interação
+    const unlockEvents = ['pointerdown', 'keydown', 'touchstart'];
+    function unlock(e) {
+      if (e.target.closest && e.target.closest('#sound')) return;
+      unlockEvents.forEach(ev => document.removeEventListener(ev, unlock));
+      if (music.paused) startMusic().catch(() => {});
+    }
+
+    startMusic().catch(() => {
+      setBtn(false);
+      unlockEvents.forEach(ev => document.addEventListener(ev, unlock));
+    });
+
+    soundBtn.addEventListener('click', () => {
+      if (music.paused) {
+        unlockEvents.forEach(ev => document.removeEventListener(ev, unlock));
+        startMusic().catch(() => {});
+      } else {
+        music.pause();
+        setBtn(false);
+      }
+    });
   </script>
 </body>
 </html>
